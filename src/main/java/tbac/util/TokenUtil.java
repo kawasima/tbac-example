@@ -18,12 +18,12 @@ public class TokenUtil {
     private static final String key = "This is secret!!!";
     private static final SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(), "HmacSHA256");
 
-    public static String createToken(HttpServletRequest request) throws GeneralSecurityException {
+    public static String createToken(HttpServletRequest request, String resourcePath) throws GeneralSecurityException {
         HttpSession session = request.getSession();
 
-        // This token will be expired after 10 sec.
-        long expire = System.currentTimeMillis() + 10 * 1000;
-        String token = session.getId() + expire;
+        // This token will be expired after 30 sec.
+        long expire = System.currentTimeMillis() + 30 * 1000;
+        String token = session.getId() + "$" + resourcePath + "$" + expire;
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(secretKey);
 
@@ -50,7 +50,9 @@ public class TokenUtil {
             mac.init(secretKey);
             String hash = Base64.encodeBase64String(
                     mac.doFinal(
-                            (session.getId() + expires).getBytes()));
+                            (session.getId() + "$"
+                                    + request.getRequestURI() + "$"
+                                    + expires).getBytes()));
 
             logger.info("expected=" + tokens[1] + ", actual=" + hash);
             return hash.equals(tokens[1]);
